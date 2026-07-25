@@ -12,8 +12,10 @@ uint8_t memory[4096];
 
 
 long loadRom(const char *path);
-int dumpMemory(long ROMsize);
+void dumpMemory(long ROMsize);
 uint16_t fetchOpcode(size_t IP);
+void disassembler(uint16_t instrucion);
+int runROM();
 
 int main(int argc, char *argv[]){
     if(argc<2){
@@ -29,7 +31,12 @@ int main(int argc, char *argv[]){
     
     dumpMemory(size);
 
-    return 0;
+    for(long i = ROM_START; i< ROM_START + size; i+=2){
+        printf("0x%04lX: ", i);
+        disassembler(fetchOpcode((size_t)i));
+    }
+
+    return 0; 
 
 }
 
@@ -69,14 +76,13 @@ long loadRom(const char *path){
 }
 
 
-int dumpMemory(long ROMsize){
+void dumpMemory(long ROMsize){
     for(long i = ROM_START; i< ROM_START + ROMsize; i++){
         if (i % 16 == 0) printf("0x%04lX: ", i);
         printf("%02X ", memory[i]);
         if (i % 16 == 15) printf("\n");
     }
     printf("\n");
-    return 0;
 }
 
 uint16_t fetchOpcode(size_t IP){
@@ -86,3 +92,41 @@ uint16_t fetchOpcode(size_t IP){
     return instruction;
 
 }
+
+
+void disassembler(uint16_t instruction){
+    int nibbleAlto = (instruction & 0xF000) >> 12;
+
+    switch (nibbleAlto)
+    {
+    case 0x0:
+        if((instruction & 0x000F) == 0){ //solo hay 00E0 y 00EE, ojo a revisar despues.
+            printf("Clear Screen \n");
+        }
+        break;
+    
+    case 0x1:
+        printf("JMP %03X \n", instruction & 0x0FFF);
+        break;
+
+    case 0x6:
+        printf("LD V%01X, %02X \n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        break;
+
+    case 0xA:
+        printf("LD I, %03X \n", instruction & 0x0FFF);
+        break;
+
+    case 0xD:
+        printf("Draw \n");
+        break;
+    
+    default:
+        printf("Unknown instruction \n");
+        break;
+    }
+
+}
+
+
+
