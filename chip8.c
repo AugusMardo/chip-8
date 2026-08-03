@@ -99,30 +99,33 @@ void disassembler(uint16_t instruction){
 
     switch (nibbleAlto)
     {
+    
     case 0x0:
-        if((instruction & 0x000F) == 0){ //solo hay 00E0 y 00EE, ojo a revisar despues.
-            printf("Clear Screen \n");
+        switch (instruction & 0x00FF) {
+        case 0xE0: printf("CLS\n"); break;
+        case 0xEE: printf("RET\n"); break;
+        default:   printf("Unknown %04X\n", instruction); break;
         }
         break;
     
     case 0x1:
-        printf("JMP %03X \n", instruction & 0x0FFF);
+        printf("JMP %03X\n", instruction & 0x0FFF);
         break;
 
     case 0x6:
-        printf("LD V%01X, %02X \n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        printf("LD V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
         break;
 
     case 0xA:
-        printf("LD I, %03X \n", instruction & 0x0FFF);
+        printf("LD I, %03X\n", instruction & 0x0FFF);
         break;
 
     case 0xD:
-        printf("Draw \n");
+        printf("Draw\n");
         break;
     
     default:
-        printf("Unknown instruction \n");
+        printf("Unknown instruction\n");
         break;
     }
 
