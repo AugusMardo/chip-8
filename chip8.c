@@ -1,47 +1,90 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #define MAX_FILE_LENGTH 3584
 #define ROM_START 0x200
 #define INSTRUCTION_SIZE 2
-
-uint8_t memory[4096];
-
+#define FONT_START 0x50
 
 
+static const uint8_t FONTSET[80] = {
+    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+    0x20, 0x60, 0x20, 0x20, 0x70, // 1
+    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+    0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+    0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+
+};
 
 
-long loadRom(const char *path);
-void dumpMemory(long ROMsize);
-uint16_t fetchOpcode(size_t IP);
+typedef struct{
+    uint8_t memory[4096];
+    uint8_t V[16];
+    uint16_t I;
+    uint16_t PC;
+    uint16_t stack[16];
+    uint8_t SP;
+    uint8_t display[32][64];
+    uint8_t delayTimer;
+    uint8_t soundTimer;
+    uint8_t keyboard[16];
+} Chip8;
+
+
+
+
+
+long loadRom(const char *path, uint8_t* memory);
+void dumpMemory(long ROMsize, const uint8_t* memory);
+uint16_t fetchOpcode(size_t PC, const uint8_t* memory);
 void disassembler(uint16_t instrucion);
+Chip8 initChip8();
 int runROM();
 
 int main(int argc, char *argv[]){
+
+
     if(argc<2){
         printf("Invalid argument.");
         return 1;
     }
-    long size = loadRom(argv[1]);
+
+    Chip8 chip8 = initChip8();
+
+    long size = loadRom(argv[1], chip8.memory);
     if (size <0){
         printf("The file reading process FAILED. \n");
         return 1;
     }
     printf("The file reading process SUCCEEDED \n");
-    
-    dumpMemory(size);
+
+    dumpMemory(size, chip8.memory);
 
     for(long i = ROM_START; i< ROM_START + size; i+=2){
         printf("0x%04lX: ", i);
-        disassembler(fetchOpcode((size_t)i));
+        disassembler(fetchOpcode((size_t)i,chip8.memory));
     }
+
+    
 
     return 0; 
 
 }
 
 
-long loadRom(const char *path){
+long loadRom(const char *path, uint8_t* memory){
 
     FILE* file = fopen(path, "rb");
 
@@ -76,7 +119,7 @@ long loadRom(const char *path){
 }
 
 
-void dumpMemory(long ROMsize){
+void dumpMemory(long ROMsize, const uint8_t* memory){
     for(long i = ROM_START; i< ROM_START + ROMsize; i++){
         if (i % 16 == 0) printf("0x%04lX: ", i);
         printf("%02X ", memory[i]);
@@ -85,10 +128,10 @@ void dumpMemory(long ROMsize){
     printf("\n");
 }
 
-uint16_t fetchOpcode(size_t IP){
-    uint16_t instruction = memory[IP];
+uint16_t fetchOpcode(size_t PC, const uint8_t* memory){
+    uint16_t instruction = memory[PC];
     instruction <<= 8;
-    instruction |= memory[IP+1]; //ojo con leer fuera de memoria.
+    instruction |= memory[PC+1]; //ojo con leer fuera de memoria.
     return instruction;
 
 }
@@ -132,4 +175,10 @@ void disassembler(uint16_t instruction){
 }
 
 
+Chip8 initChip8(){
+    Chip8 chip8 = {0};
+    chip8.PC = 0x200;
+    memcpy(chip8.memory + FONT_START, FONTSET, sizeof(FONTSET));
+    return chip8;
+}
 
