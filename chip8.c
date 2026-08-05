@@ -6,6 +6,7 @@
 #define ROM_START 0x200
 #define INSTRUCTION_SIZE 2
 #define FONT_START 0x50
+#define MAX_INSTRUCTIONS 1000
 
 
 static const uint8_t FONTSET[80] = {
@@ -45,13 +46,13 @@ typedef struct{
 
 
 
-
 long loadRom(const char *path, uint8_t* memory);
 void dumpMemory(long ROMsize, const uint8_t* memory);
 uint16_t fetchOpcode(size_t PC, const uint8_t* memory);
 void disassembler(uint16_t instrucion);
 Chip8 initChip8();
-int runROM();
+int runROM(Chip8* chip8);
+int execute(uint16_t opcode, Chip8* chip8);
 
 int main(int argc, char *argv[]){
 
@@ -72,12 +73,12 @@ int main(int argc, char *argv[]){
 
     dumpMemory(size, chip8.memory);
 
-    for(long i = ROM_START; i< ROM_START + size; i+=2){
-        printf("0x%04lX: ", i);
-        disassembler(fetchOpcode((size_t)i,chip8.memory));
-    }
+    //for(long i = ROM_START; i< ROM_START + size; i+=2){
+    //    printf("0x%04lX: ", i);
+    //    disassembler(fetchOpcode((size_t)i,chip8.memory));
+    //}
 
-    
+    runROM(&chip8);
 
     return 0; 
 
@@ -182,3 +183,55 @@ Chip8 initChip8(){
     return chip8;
 }
 
+
+int execute(uint16_t opcode, Chip8* chip8){
+    int nibbleAlto = (opcode & 0xF000) >> 12;
+
+    switch (nibbleAlto)
+    {
+    
+    case 0x0:
+        switch (opcode & 0x00FF) {
+        case 0xE0: memset(chip8->display, 0, sizeof(chip8->display)); break;
+        case 0xEE: printf("RET\n"); break;
+        default:   printf("Unknown %04X\n", opcode); break;
+        }
+        break;
+    
+    case 0x1:
+
+        chip8->PC = opcode & 0x0FFF; //1nnn -> jmp nnn
+        break;
+
+    case 0x6:
+        chip8->V[(opcode & 0x0F00)>>8] = opcode & 0x00FF; //6xnn -> ld vx nn
+        break;
+
+    case 0xA:
+        chip8->I = opcode & 0x0FFF; //Annn ->  LD I nnn
+        break;
+
+    case 0xD:
+        printf("Draw\n"); //por ahora nada
+        break;
+    
+    default:
+        printf("Unknown instruction\n");
+        break;
+    }
+
+    return 0; //por ahora
+}
+
+int runROM(Chip8* chip8){
+    //uint8_t running = 1;
+    long cycles = 0;
+    while(cycles <=MAX_INSTRUCTIONS){ //despues vemos de que condicion de corte hacer.
+        uint16_t opcode = fetchOpcode(chip8->PC, chip8->memory);
+        chip8->PC += 2;
+        execute(opcode, chip8); // pense en poner running = execute(opcode) nose si esto sera poco declarativo, la idea es que execute devuelva 1 si se ejecuto correctamente, -1 si no (o si se colgo, adentro del execute se ve como detecto que llegue al fin, esto es temporal, despues lo cambiare.)
+        cycles++;
+    }
+    printf("PC=%04X I=%04X V0=%02X V1=%02X\n", chip8->PC, chip8->I, chip8->V[0], chip8->V[1]);
+    return 0; //despues lo cambio para que pueda devolver -1 en caso de algun error.
+}
