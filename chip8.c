@@ -53,6 +53,7 @@ void disassembler(uint16_t instrucion);
 Chip8 initChip8();
 int runROM(Chip8* chip8);
 int execute(uint16_t opcode, Chip8* chip8);
+void drawScreen(const Chip8* chip8);
 
 int main(int argc, char *argv[]){
 
@@ -212,7 +213,32 @@ int execute(uint16_t opcode, Chip8* chip8){
         break;
 
     case 0xD:
-        printf("Draw\n"); //por ahora nada
+        uint8_t X = (opcode & 0x0F00)>>8;
+        uint8_t Y = (opcode & 0x00F0)>>4;
+        uint8_t N = (opcode & 0x000F);
+        chip8->V[0xF] = 0; //V[0xF] = V[15] pero en la documentacion se llama VF, es un tema de sintaxis.
+        uint8_t x0 = chip8->V[X] & 63; //wrap
+        uint8_t y0 = chip8->V[Y] & 31;
+        for(size_t row = 0; row<N; row++){
+            if(y0+row >= 32) break;
+            uint8_t spriteByteRow = chip8->memory[chip8->I + row];
+            for (size_t col = 0; col < 8; col++){
+                if(x0+col >= 64) break;
+                uint8_t bit = (spriteByteRow >> (7-col)) & 1;
+                if(bit){
+                    if(chip8->display[y0+row][x0+col]){
+                        chip8->display[y0+row][x0+col] = 0;
+                        chip8->V[0xF] = 1;
+                    }
+                    else{
+                        chip8->display[y0+row][x0+col] = 1;
+                    }
+                }
+                 
+            }
+            
+        }
+        
         break;
     
     default:
@@ -221,6 +247,15 @@ int execute(uint16_t opcode, Chip8* chip8){
     }
 
     return 0; //por ahora
+}
+
+void drawScreen(const Chip8 *chip8){
+    for (int y = 0; y < 32; y++) {
+        for (int x = 0; x < 64; x++) {
+            printf("%c", chip8->display[y][x] ? '#' : ' ');
+        }
+        printf("\n");
+    }
 }
 
 int runROM(Chip8* chip8){
@@ -232,6 +267,8 @@ int runROM(Chip8* chip8){
         execute(opcode, chip8); // pense en poner running = execute(opcode) nose si esto sera poco declarativo, la idea es que execute devuelva 1 si se ejecuto correctamente, -1 si no (o si se colgo, adentro del execute se ve como detecto que llegue al fin, esto es temporal, despues lo cambiare.)
         cycles++;
     }
+
+    drawScreen(chip8);
     printf("PC=%04X I=%04X V0=%02X V1=%02X\n", chip8->PC, chip8->I, chip8->V[0], chip8->V[1]);
     return 0; //despues lo cambio para que pueda devolver -1 en caso de algun error.
 }
