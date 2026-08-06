@@ -252,7 +252,7 @@ int execute(uint16_t opcode, Chip8* chip8){
 void drawScreen(const Chip8 *chip8){
     for (int y = 0; y < 32; y++) {
         for (int x = 0; x < 64; x++) {
-            printf("%c", chip8->display[y][x] ? '#' : ' ');
+            printf("%s", chip8->display[y][x] ? "██" : "  ");
         }
         printf("\n");
     }
