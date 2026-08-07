@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define MAX_FILE_LENGTH 3584
 #define ROM_START 0x200
@@ -74,7 +75,7 @@ int main(int argc, char *argv[]){
 
     dumpMemory(size, chip8.memory);
 
-    //for(long i = ROM_START; i< ROM_START + size; i+=2){
+    //for(long i = ROM_START; i< ROM_START + size; i+=INSTRUCTION_SIZE){
     //    printf("0x%04lX: ", i);
     //    disassembler(fetchOpcode((size_t)i,chip8.memory));
     //}
@@ -157,16 +158,57 @@ void disassembler(uint16_t instruction){
         printf("JMP %03X\n", instruction & 0x0FFF);
         break;
 
+    case 0x2:
+        printf("CALL %03X\n", instruction & 0x0FFF);
+        break;  
+
+    case 0x3:
+        printf("SE V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        break;
+
+    case 0x4:
+        printf("SNE V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        break;
+
+    case 0x5:
+        printf("SE V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4);
+        break;
+
     case 0x6:
         printf("LD V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        break;
+
+    case 0x7:
+        printf("ADD V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        break;
+
+    case 0x8:
+        switch (instruction & 0x000F) {
+            case 0x0: printf("LD V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
+            case 0x1: printf("OR V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
+            case 0x2: printf("AND V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
+            case 0x3: printf("XOR V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
+            case 0x4: printf("ADD V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
+            case 0x5: printf("SUB V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
+            case 0x7: printf("SUBN V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
+            default: printf("Unknown instruction\n"); break;
+        }
+        break;
+    
+    case 0x9:
+        printf("SNE V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4);
         break;
 
     case 0xA:
         printf("LD I, %03X\n", instruction & 0x0FFF);
         break;
 
+    case 0xC:
+        printf("RND V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        break;
+
     case 0xD:
-        printf("Draw\n");
+        printf("DRW V%01X, V%01X, %01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4, instruction & 0x000F);
         break;
     
     default:
@@ -263,7 +305,7 @@ int runROM(Chip8* chip8){
     long cycles = 0;
     while(cycles <=MAX_INSTRUCTIONS){ //despues vemos de que condicion de corte hacer.
         uint16_t opcode = fetchOpcode(chip8->PC, chip8->memory);
-        chip8->PC += 2;
+        chip8->PC += INSTRUCTION_SIZE;
         execute(opcode, chip8); // pense en poner running = execute(opcode) nose si esto sera poco declarativo, la idea es que execute devuelva 1 si se ejecuto correctamente, -1 si no (o si se colgo, adentro del execute se ve como detecto que llegue al fin, esto es temporal, despues lo cambiare.)
         cycles++;
     }
