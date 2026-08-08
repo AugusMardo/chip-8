@@ -75,12 +75,12 @@ int main(int argc, char *argv[]){
 
     dumpMemory(size, chip8.memory);
 
-    //for(long i = ROM_START; i< ROM_START + size; i+=INSTRUCTION_SIZE){
-    //    printf("0x%04lX: ", i);
-    //    disassembler(fetchOpcode((size_t)i,chip8.memory));
-    //}
+    for(long i = ROM_START; i< ROM_START + size; i+=INSTRUCTION_SIZE){
+        printf("0x%04lX: ", i);
+        disassembler(fetchOpcode((size_t)i,chip8.memory));
+    }
 
-    runROM(&chip8);
+    //runROM(&chip8);
 
     return 0; 
 
@@ -190,7 +190,9 @@ void disassembler(uint16_t instruction){
             case 0x3: printf("XOR V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
             case 0x4: printf("ADD V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
             case 0x5: printf("SUB V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
+            case 0x6: printf("SHR V%01X {, V%01X}\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
             case 0x7: printf("SUBN V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
+            case 0xE: printf("SHL V%01X {, V%01X}\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
             default: printf("Unknown instruction\n"); break;
         }
         break;
@@ -203,6 +205,10 @@ void disassembler(uint16_t instruction){
         printf("LD I, %03X\n", instruction & 0x0FFF);
         break;
 
+    case 0xB:
+        printf("JP V0, %03X\n", instruction & 0x0FFF);
+        break;
+
     case 0xC:
         printf("RND V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
         break;
@@ -210,6 +216,28 @@ void disassembler(uint16_t instruction){
     case 0xD:
         printf("DRW V%01X, V%01X, %01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4, instruction & 0x000F);
         break;
+
+    case 0xE:
+        switch (instruction & 0x00FF) {
+            case 0x9E: printf("SKP V%01X\n", (instruction & 0x0F00) >> 8); break;
+            case 0xA1: printf("SKNP V%01X\n", (instruction & 0x0F00) >> 8); break;
+            default: printf("Unknown instruction\n"); break;
+        }
+        break;
+
+    case 0xF:
+        switch (instruction & 0x00FF) {
+            case 0x07: printf("LD V%01X, DT\n", (instruction & 0x0F00) >> 8); break;
+            case 0x15: printf("LD DT, V%01X\n", (instruction & 0x0F00) >> 8); break;
+            case 0x18: printf("LD ST, V%01X\n", (instruction & 0x0F00) >> 8); break;
+            case 0x29: printf("LD F, V%01X\n", (instruction & 0x0F00) >> 8); break;
+            case 0x33: printf("LD B, V%01X\n", (instruction & 0x0F00) >> 8); break;
+            case 0x55: printf("LD [I], V0-V%01X\n", (instruction & 0x0F00) >> 8); break;
+            case 0x65: printf("LD V0-V%01X, [I]\n", (instruction & 0x0F00) >> 8); break;
+            case 0x0A: printf("LD V%01X, K\n", (instruction & 0x0F00) >> 8); break;
+            case 0x1E: printf("ADD I, V%01X\n", (instruction & 0x0F00) >> 8); break;
+            default: printf("Unknown instruction\n"); break;
+        } break;
     
     default:
         printf("Unknown instruction\n");
