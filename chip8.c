@@ -336,7 +336,12 @@ int execute(uint16_t opcode, Chip8* chip8){
                 chip8->V[0xF] = !borrow;
                 break;
             }
-            case 0x6: printf("SHR V%01X {, V%01X}\n",   X, Y); break;
+            case 0x6:{ //implementacion cowgod
+                uint8_t bitOn = chip8->V[X] & 0x01;
+                chip8->V[X] >>= 1;
+                chip8->V[0xF] = bitOn;
+                break;
+            }
             case 0x7:{ 
                 uint8_t borrow = 0;
                 if(chip8->V[X] > chip8->V[Y]) borrow = 1;
@@ -344,19 +349,26 @@ int execute(uint16_t opcode, Chip8* chip8){
                 chip8->V[0xF] = !borrow;
                 break;
             }
-            case 0xE: printf("SHL V%01X {, V%01X}\n",   X, Y); break;
+            case 0xE:{//implementacion cowgod
+                uint8_t bitOn = (chip8->V[X] & 0x80)>>7;
+                chip8->V[X] <<= 1;
+                chip8->V[0xF] = bitOn;
+                break;
+            }
             default:  printf("Unknown %04X\n", opcode); break;
         }
         break;
 
     case 0x9:
-        if(chip8->V[X] != chip8->V[Y]){
-        chip8->PC+=2;
-        }
+        if(chip8->V[X] != chip8->V[Y]) chip8->PC+=2;
         break;
 
     case 0xA:
         chip8->I = NNN;                       // ANNN -> LD I, NNN
+        break;
+
+    case 0xB:
+        chip8->PC = chip8->V[0] + NNN;
         break;
 
     case 0xC:
@@ -391,10 +403,10 @@ int execute(uint16_t opcode, Chip8* chip8){
 
     case 0xF:
         switch (NN) {
-            case 0x07: printf("LD V%01X, DT\n", X); break;
+            case 0x07: chip8->V[X] = chip8->delayTimer; break;
             case 0x0A: printf("LD V%01X, K\n", X); break;
-            case 0x15: printf("LD DT, V%01X\n", X); break;
-            case 0x18: printf("LD ST, V%01X\n", X); break;
+            case 0x15: chip8->delayTimer = chip8->V[X]; break;
+            case 0x18: chip8->soundTimer = chip8->V[X]; break;
             case 0x1E: chip8->I += chip8->V[X]; break;
             case 0x29: printf("LD F, V%01X\n", X); break;
             case 0x33: printf("LD B, V%01X\n", X); break;
