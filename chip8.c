@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define MAX_FILE_LENGTH 3584
 #define ROM_START 0x200
@@ -80,7 +81,7 @@ int main(int argc, char *argv[]){
         disassembler(fetchOpcode((size_t)i,chip8.memory));
     }
 
-    //runROM(&chip8);
+    runROM(&chip8);
 
     return 0; 
 
@@ -141,109 +142,114 @@ uint16_t fetchOpcode(size_t PC, const uint8_t* memory){
 
 
 void disassembler(uint16_t instruction){
-    int nibbleAlto = (instruction & 0xF000) >> 12;
+    uint8_t  nibbleAlto = (instruction & 0xF000) >> 12;
+    uint8_t  X   = (instruction & 0x0F00) >> 8;
+    uint8_t  Y   = (instruction & 0x00F0) >> 4;
+    uint8_t  N   =  instruction & 0x000F;
+    uint8_t  NN  =  instruction & 0x00FF;
+    uint16_t NNN =  instruction & 0x0FFF;
 
     switch (nibbleAlto)
     {
-    
+
     case 0x0:
-        switch (instruction & 0x00FF) {
-        case 0xE0: printf("CLS\n"); break;
-        case 0xEE: printf("RET\n"); break;
-        default:   printf("Unknown %04X\n", instruction); break;
+        switch (NN) {
+            case 0xE0: printf("CLS\n"); break;
+            case 0xEE: printf("RET\n"); break;
+            default:   printf("Unknown %04X\n", instruction); break;
         }
         break;
-    
+
     case 0x1:
-        printf("JMP %03X\n", instruction & 0x0FFF);
+        printf("JMP %03X\n", NNN);
         break;
 
     case 0x2:
-        printf("CALL %03X\n", instruction & 0x0FFF);
-        break;  
+        printf("CALL %03X\n", NNN);
+        break;
 
     case 0x3:
-        printf("SE V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        printf("SE V%01X, %02X\n", X, NN);
         break;
 
     case 0x4:
-        printf("SNE V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        printf("SNE V%01X, %02X\n", X, NN);
         break;
 
     case 0x5:
-        printf("SE V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4);
+        printf("SE V%01X, V%01X\n", X, Y);
         break;
 
     case 0x6:
-        printf("LD V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        printf("LD V%01X, %02X\n", X, NN);
         break;
 
     case 0x7:
-        printf("ADD V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        printf("ADD V%01X, %02X\n", X, NN);
         break;
 
     case 0x8:
-        switch (instruction & 0x000F) {
-            case 0x0: printf("LD V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
-            case 0x1: printf("OR V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
-            case 0x2: printf("AND V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
-            case 0x3: printf("XOR V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
-            case 0x4: printf("ADD V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
-            case 0x5: printf("SUB V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
-            case 0x6: printf("SHR V%01X {, V%01X}\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
-            case 0x7: printf("SUBN V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
-            case 0xE: printf("SHL V%01X {, V%01X}\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4); break;
-            default: printf("Unknown instruction\n"); break;
+        switch (N) {
+            case 0x0: printf("LD V%01X, V%01X\n",       X, Y); break;
+            case 0x1: printf("OR V%01X, V%01X\n",       X, Y); break;
+            case 0x2: printf("AND V%01X, V%01X\n",      X, Y); break;
+            case 0x3: printf("XOR V%01X, V%01X\n",      X, Y); break;
+            case 0x4: printf("ADD V%01X, V%01X\n",      X, Y); break;
+            case 0x5: printf("SUB V%01X, V%01X\n",      X, Y); break;
+            case 0x6: printf("SHR V%01X {, V%01X}\n",   X, Y); break;
+            case 0x7: printf("SUBN V%01X, V%01X\n",     X, Y); break;
+            case 0xE: printf("SHL V%01X {, V%01X}\n",   X, Y); break;
+            default:  printf("Unknown %04X\n", instruction); break;
         }
         break;
-    
+
     case 0x9:
-        printf("SNE V%01X, V%01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4);
+        printf("SNE V%01X, V%01X\n", X, Y);
         break;
 
     case 0xA:
-        printf("LD I, %03X\n", instruction & 0x0FFF);
+        printf("LD I, %03X\n", NNN);
         break;
 
     case 0xB:
-        printf("JP V0, %03X\n", instruction & 0x0FFF);
+        printf("JP V0, %03X\n", NNN);
         break;
 
     case 0xC:
-        printf("RND V%01X, %02X\n", (instruction & 0x0F00) >> 8, instruction & 0x00FF);
+        printf("RND V%01X, %02X\n", X, NN);
         break;
 
     case 0xD:
-        printf("DRW V%01X, V%01X, %01X\n", (instruction & 0x0F00) >> 8, (instruction & 0x00F0) >> 4, instruction & 0x000F);
+        printf("DRW V%01X, V%01X, %01X\n", X, Y, N);
         break;
 
     case 0xE:
-        switch (instruction & 0x00FF) {
-            case 0x9E: printf("SKP V%01X\n", (instruction & 0x0F00) >> 8); break;
-            case 0xA1: printf("SKNP V%01X\n", (instruction & 0x0F00) >> 8); break;
-            default: printf("Unknown instruction\n"); break;
+        switch (NN) {
+            case 0x9E: printf("SKP V%01X\n", X); break;
+            case 0xA1: printf("SKNP V%01X\n", X); break;
+            default:   printf("Unknown %04X\n", instruction); break;
         }
         break;
 
     case 0xF:
-        switch (instruction & 0x00FF) {
-            case 0x07: printf("LD V%01X, DT\n", (instruction & 0x0F00) >> 8); break;
-            case 0x15: printf("LD DT, V%01X\n", (instruction & 0x0F00) >> 8); break;
-            case 0x18: printf("LD ST, V%01X\n", (instruction & 0x0F00) >> 8); break;
-            case 0x29: printf("LD F, V%01X\n", (instruction & 0x0F00) >> 8); break;
-            case 0x33: printf("LD B, V%01X\n", (instruction & 0x0F00) >> 8); break;
-            case 0x55: printf("LD [I], V0-V%01X\n", (instruction & 0x0F00) >> 8); break;
-            case 0x65: printf("LD V0-V%01X, [I]\n", (instruction & 0x0F00) >> 8); break;
-            case 0x0A: printf("LD V%01X, K\n", (instruction & 0x0F00) >> 8); break;
-            case 0x1E: printf("ADD I, V%01X\n", (instruction & 0x0F00) >> 8); break;
-            default: printf("Unknown instruction\n"); break;
-        } break;
-    
+        switch (NN) {
+            case 0x07: printf("LD V%01X, DT\n", X); break;
+            case 0x0A: printf("LD V%01X, K\n", X); break;
+            case 0x15: printf("LD DT, V%01X\n", X); break;
+            case 0x18: printf("LD ST, V%01X\n", X); break;
+            case 0x1E: printf("ADD I, V%01X\n", X); break;
+            case 0x29: printf("LD F, V%01X\n", X); break;
+            case 0x33: printf("LD B, V%01X\n", X); break;
+            case 0x55: printf("LD [I], V0-V%01X\n", X); break;
+            case 0x65: printf("LD V0-V%01X, [I]\n", X); break;
+            default:   printf("Unknown %04X\n", instruction); break;
+        }
+        break;
+
     default:
-        printf("Unknown instruction\n");
+        printf("Unknown %04X\n", instruction);
         break;
     }
-
 }
 
 
@@ -251,72 +257,160 @@ Chip8 initChip8(){
     Chip8 chip8 = {0};
     chip8.PC = 0x200;
     memcpy(chip8.memory + FONT_START, FONTSET, sizeof(FONTSET));
+    srand(time(NULL));
     return chip8;
 }
 
 
 int execute(uint16_t opcode, Chip8* chip8){
-    int nibbleAlto = (opcode & 0xF000) >> 12;
+    uint8_t  nibbleAlto = (opcode & 0xF000) >> 12;
+    uint8_t  X   = (opcode & 0x0F00) >> 8;
+    uint8_t  Y   = (opcode & 0x00F0) >> 4;
+    uint8_t  N   =  opcode & 0x000F;
+    uint8_t  NN  =  opcode & 0x00FF;
+    uint16_t NNN =  opcode & 0x0FFF;
 
     switch (nibbleAlto)
     {
-    
+
     case 0x0:
-        switch (opcode & 0x00FF) {
-        case 0xE0: memset(chip8->display, 0, sizeof(chip8->display)); break;
-        case 0xEE: printf("RET\n"); break;
-        default:   printf("Unknown %04X\n", opcode); break;
+        switch (NN) {
+            case 0xE0: memset(chip8->display, 0, sizeof(chip8->display)); break;
+            case 0xEE: chip8->PC = stackPop(chip8); break;
+            default:   printf("Unknown %04X\n", opcode); break;
         }
         break;
-    
-    case 0x1:
 
-        chip8->PC = opcode & 0x0FFF; //1nnn -> jmp nnn
+    case 0x1:
+        chip8->PC = NNN;                      // 1NNN -> JMP NNN
+        break;
+
+    case 0x2:
+        stackPush(chip8, chip8->PC);
+        chip8->PC = NNN;
+        break;
+
+    case 0x3: 
+        if(chip8->V[X] == NN){
+            chip8->PC+=2;
+        }
+        break;
+
+    case 0x4:
+        if(chip8->V[X] != NN){
+            chip8->PC+=2;
+        }
+        break;
+
+    case 0x5:
+        if(chip8->V[X] == chip8->V[Y]){
+        chip8->PC+=2;
+        }
         break;
 
     case 0x6:
-        chip8->V[(opcode & 0x0F00)>>8] = opcode & 0x00FF; //6xnn -> ld vx nn
+        chip8->V[X] = NN;                     // 6XNN -> LD Vx, NN
+        break;
+
+    case 0x7:
+        chip8->V[X]+=NN;
+        break;
+    
+    
+    case 0x8:
+        switch (N) {
+            case 0x0: chip8->V[X] = chip8->V[Y]; break;
+            case 0x1: chip8->V[X] |= chip8->V[Y]; break;
+            case 0x2: chip8->V[X] &= chip8->V[Y]; break;
+            case 0x3: chip8->V[X] ^= chip8->V[Y]; break;
+            case 0x4:{  
+                uint16_t sum = chip8->V[X] + chip8->V[Y];
+                chip8->V[X] = sum;
+                chip8->V[0xF] = (sum > 255) ? 1 : 0; 
+                break;
+            }
+            case 0x5:{  
+                uint8_t borrow = 0;
+                if(chip8->V[X] < chip8->V[Y]) borrow = 1;
+                chip8->V[X] -= chip8->V[Y];
+                chip8->V[0xF] = !borrow;
+                break;
+            }
+            case 0x6: printf("SHR V%01X {, V%01X}\n",   X, Y); break;
+            case 0x7:{ 
+                uint8_t borrow = 0;
+                if(chip8->V[X] > chip8->V[Y]) borrow = 1;
+                chip8->V[X] = chip8->V[Y] - chip8->V[X];
+                chip8->V[0xF] = !borrow;
+                break;
+            }
+            case 0xE: printf("SHL V%01X {, V%01X}\n",   X, Y); break;
+            default:  printf("Unknown %04X\n", opcode); break;
+        }
+        break;
+
+    case 0x9:
+        if(chip8->V[X] != chip8->V[Y]){
+        chip8->PC+=2;
+        }
         break;
 
     case 0xA:
-        chip8->I = opcode & 0x0FFF; //Annn ->  LD I nnn
+        chip8->I = NNN;                       // ANNN -> LD I, NNN
         break;
 
-    case 0xD:
-        uint8_t X = (opcode & 0x0F00)>>8;
-        uint8_t Y = (opcode & 0x00F0)>>4;
-        uint8_t N = (opcode & 0x000F);
-        chip8->V[0xF] = 0; //V[0xF] = V[15] pero en la documentacion se llama VF, es un tema de sintaxis.
-        uint8_t x0 = chip8->V[X] & 63; //wrap
+    case 0xC:
+        chip8->V[X] = (rand() % 256) & NN;
+        break;
+
+    case 0xD: {                               // DXYN -> DRW Vx, Vy, N
+        chip8->V[0xF] = 0;
+        uint8_t x0 = chip8->V[X] & 63;        // wrap del origen
         uint8_t y0 = chip8->V[Y] & 31;
-        for(size_t row = 0; row<N; row++){
-            if(y0+row >= 32) break;
+
+        for (size_t row = 0; row < N; row++) {
+            if (y0 + row >= 32) break;        // clipping vertical
             uint8_t spriteByteRow = chip8->memory[chip8->I + row];
-            for (size_t col = 0; col < 8; col++){
-                if(x0+col >= 64) break;
-                uint8_t bit = (spriteByteRow >> (7-col)) & 1;
-                if(bit){
-                    if(chip8->display[y0+row][x0+col]){
-                        chip8->display[y0+row][x0+col] = 0;
+
+            for (size_t col = 0; col < 8; col++) {
+                if (x0 + col >= 64) break;    // clipping horizontal
+                uint8_t bit = (spriteByteRow >> (7 - col)) & 1;
+                if (bit) {
+                    if (chip8->display[y0 + row][x0 + col]) {
+                        chip8->display[y0 + row][x0 + col] = 0;
                         chip8->V[0xF] = 1;
-                    }
-                    else{
-                        chip8->display[y0+row][x0+col] = 1;
+                    } else {
+                        chip8->display[y0 + row][x0 + col] = 1;
                     }
                 }
-                 
             }
-            
         }
-        
         break;
-    
+        
+    }
+
+    case 0xF:
+        switch (NN) {
+            case 0x07: printf("LD V%01X, DT\n", X); break;
+            case 0x0A: printf("LD V%01X, K\n", X); break;
+            case 0x15: printf("LD DT, V%01X\n", X); break;
+            case 0x18: printf("LD ST, V%01X\n", X); break;
+            case 0x1E: chip8->I += chip8->V[X]; break;
+            case 0x29: printf("LD F, V%01X\n", X); break;
+            case 0x33: printf("LD B, V%01X\n", X); break;
+            case 0x55: printf("LD [I], V0-V%01X\n", X); break;
+            case 0x65: printf("LD V0-V%01X, [I]\n", X); break;
+            default:   printf("Unknown %04X\n", opcode); break;
+        }
+        break;
+   
+
     default:
-        printf("Unknown instruction\n");
+        printf("Unknown %04X\n", opcode);
         break;
     }
 
-    return 0; //por ahora
+    return 0;
 }
 
 void drawScreen(const Chip8 *chip8){
@@ -341,4 +435,20 @@ int runROM(Chip8* chip8){
     drawScreen(chip8);
     printf("PC=%04X I=%04X V0=%02X V1=%02X\n", chip8->PC, chip8->I, chip8->V[0], chip8->V[1]);
     return 0; //despues lo cambio para que pueda devolver -1 en caso de algun error.
+}
+
+void stackPush(Chip8 *chip8, uint16_t addr){
+    if (chip8->SP >= 16) {
+        printf("Stack overflow en PC=%04X\n", chip8->PC);
+        exit(1);
+    }
+    chip8->stack[chip8->SP++] = addr;
+}
+
+uint16_t stackPop(Chip8 *chip8){
+    if (chip8->SP == 0) {
+        printf("Stack underflow en PC=%04X\n", chip8->PC);
+        exit(1);
+    }
+    return chip8->stack[--chip8->SP];
 }
