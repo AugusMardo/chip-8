@@ -8,7 +8,8 @@
 #define ROM_START 0x200
 #define INSTRUCTION_SIZE 2
 #define FONT_START 0x50
-#define MAX_INSTRUCTIONS 1000
+#define MAX_INSTRUCTIONS 50000000
+#define TIMER_INTERVAL_NS (1000000000L / 60)
 
 
 static const uint8_t FONTSET[80] = {
@@ -474,8 +475,25 @@ void drawScreen(const Chip8 *chip8){
 
 int runROM(Chip8* chip8){
     //uint8_t running = 1;
+    struct timespec getTime;
+    clock_gettime(CLOCK_MONOTONIC, &getTime);
+    long oldTime = getTime.tv_sec*1000000000L + getTime.tv_nsec; //pasamos todo a nanosegundos
     long cycles = 0;
+    long newTime = 0;
+    long dTime = 0;
+    long elapsedTime = 0;
     while(cycles <=MAX_INSTRUCTIONS){ //despues vemos de que condicion de corte hacer.
+        clock_gettime(CLOCK_MONOTONIC, &getTime);
+        newTime = getTime.tv_sec*1000000000L + getTime.tv_nsec;
+        dTime = newTime - oldTime;
+        elapsedTime += dTime;
+        oldTime = newTime;
+        while(elapsedTime>=TIMER_INTERVAL_NS){
+            if(chip8->delayTimer>0) chip8->delayTimer--;
+            if(chip8->soundTimer>0) chip8->soundTimer--;
+            elapsedTime-=TIMER_INTERVAL_NS;
+        }
+        //si paso 16,67ms bajar timers y restar del acumulador
         uint16_t opcode = fetchOpcode(chip8->PC, chip8->memory);
         chip8->PC += INSTRUCTION_SIZE;
         execute(opcode, chip8); // pense en poner running = execute(opcode) nose si esto sera poco declarativo, la idea es que execute devuelva 1 si se ejecuto correctamente, -1 si no (o si se colgo, adentro del execute se ve como detecto que llegue al fin, esto es temporal, despues lo cambiare.)
