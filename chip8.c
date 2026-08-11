@@ -13,7 +13,7 @@
 
 static const uint8_t FONTSET[80] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-    0x20, 0x60, 0x20, 0x20, 0x70, // 1
+    0x0, 0x60, 0x20, 0x20, 0x70, // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
     0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
     0x90, 0x90, 0xF0, 0x10, 0x10, // 4
@@ -401,17 +401,52 @@ int execute(uint16_t opcode, Chip8* chip8){
         
     }
 
+    case 0xE:
+    switch (NN) {
+        case 0x9E: if(chip8->keyboard[chip8->V[X]] & 0x0F) chip8->PC += 2; break;
+        case 0xA1: if(!chip8->keyboard[chip8->V[X]] & 0x0F) chip8->PC += 2; break;
+        default:   printf("Unknown %04X\n", opcode); break;
+    }
+    break;
+
     case 0xF:
         switch (NN) {
             case 0x07: chip8->V[X] = chip8->delayTimer; break;
-            case 0x0A: printf("LD V%01X, K\n", X); break;
+            case 0x0A:{
+                uint8_t keyPressed = 0;
+                for(int i = 0; i<=15 && !keyPressed; i++){
+                    if(chip8->keyboard[i]){
+                        chip8->V[X] = i;
+                        keyPressed = 1;
+                    }
+                }
+                if(!keyPressed) chip8->PC -=2;
+
+                break;
+            }
             case 0x15: chip8->delayTimer = chip8->V[X]; break;
             case 0x18: chip8->soundTimer = chip8->V[X]; break;
             case 0x1E: chip8->I += chip8->V[X]; break;
-            case 0x29: printf("LD F, V%01X\n", X); break;
-            case 0x33: printf("LD B, V%01X\n", X); break;
-            case 0x55: printf("LD [I], V0-V%01X\n", X); break;
-            case 0x65: printf("LD V0-V%01X, [I]\n", X); break;
+            case 0x29: chip8->I = FONT_START+(5*chip8->V[X]); break;
+            case 0x33:{ 
+                uint8_t centenas = chip8->V[X] / 100;
+                uint8_t decenas = (chip8->V[X]%100) /10;
+                uint8_t unidades = chip8->V[X]%10;
+                chip8->memory[chip8->I] = centenas;
+                chip8->memory[chip8->I+1] = decenas;
+                chip8->memory[chip8->I+2] = unidades;           
+                break;
+            }
+            case 0x55: 
+                for(int i = 0; i<=X; i++){ //implementacion moderna, no modifica I.
+                    chip8->memory[chip8->I+i] = chip8->V[i];
+                }    
+                break;
+            case 0x65: 
+                for(int i = 0; i<=X; i++){ //implementacion moderna, no modifica I.
+                    chip8->V[i] = chip8->memory[chip8->I+i];
+                } 
+                break;
             default:   printf("Unknown %04X\n", opcode); break;
         }
         break;
