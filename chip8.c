@@ -56,6 +56,9 @@ Chip8 initChip8();
 int runROM(Chip8* chip8);
 int execute(uint16_t opcode, Chip8* chip8);
 void drawScreen(const Chip8* chip8);
+void stackPush(Chip8 *chip8, uint16_t addr);
+uint16_t stackPop(Chip8 *chip8);
+
 
 int main(int argc, char *argv[]){
 
@@ -403,8 +406,8 @@ int execute(uint16_t opcode, Chip8* chip8){
 
     case 0xE:
     switch (NN) {
-        case 0x9E: if(chip8->keyboard[chip8->V[X]] & 0x0F) chip8->PC += 2; break;
-        case 0xA1: if(!chip8->keyboard[chip8->V[X]] & 0x0F) chip8->PC += 2; break;
+        case 0x9E: if(chip8->keyboard[chip8->V[X] & 0x0F]) chip8->PC += 2; break;
+        case 0xA1: if(!chip8->keyboard[chip8->V[X] & 0x0F]) chip8->PC += 2; break;
         default:   printf("Unknown %04X\n", opcode); break;
     }
     break;
