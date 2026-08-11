@@ -3,18 +3,21 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <SDL2/SDL.h>
 
+#define SCALE 15
+#define SCREEN_W 64
+#define SCREEN_H 32
 #define MAX_FILE_LENGTH 3584
 #define ROM_START 0x200
 #define INSTRUCTION_SIZE 2
 #define FONT_START 0x50
-#define MAX_INSTRUCTIONS 50000000
-#define TIMER_INTERVAL_NS (1000000000L / 60)
+#define INSTRUCTIONS_PER_FRAME 11
 
 
 static const uint8_t FONTSET[80] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-    0x0, 0x60, 0x20, 0x20, 0x70, // 1
+    0x20, 0x60, 0x20, 0x20, 0x70, // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
     0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
     0x90, 0x90, 0xF0, 0x10, 0x10, // 4
@@ -54,7 +57,7 @@ void dumpMemory(long ROMsize, const uint8_t* memory);
 uint16_t fetchOpcode(size_t PC, const uint8_t* memory);
 void disassembler(uint16_t instrucion);
 Chip8 initChip8();
-int runROM(Chip8* chip8);
+int runROM(Chip8* chip8, SDL_Renderer* renderer);
 int execute(uint16_t opcode, Chip8* chip8);
 void drawScreen(const Chip8* chip8);
 void stackPush(Chip8 *chip8, uint16_t addr);
@@ -63,6 +66,9 @@ uint16_t stackPop(Chip8 *chip8);
 
 int main(int argc, char *argv[]){
 
+
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
 
     if(argc<2){
         printf("Invalid argument.");
@@ -85,7 +91,35 @@ int main(int argc, char *argv[]){
         disassembler(fetchOpcode((size_t)i,chip8.memory));
     }
 
-    runROM(&chip8);
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    printf("SDL_Init falló: %s\n", SDL_GetError());
+    return 1;
+    }
+
+    window = SDL_CreateWindow("CHIP-8",
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        SCREEN_W * SCALE, SCREEN_H * SCALE, 0);
+
+    if (!window) {
+        printf("CreateWindow falló: %s\n", SDL_GetError());
+        SDL_Quit();
+        return 1;
+    }
+
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    if (!renderer) {
+        printf("CreateRenderer falló: %s\n", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+
+    runROM(&chip8, renderer);
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 
     return 0; 
 
@@ -473,35 +507,55 @@ void drawScreen(const Chip8 *chip8){
     }
 }
 
-int runROM(Chip8* chip8){
-    //uint8_t running = 1;
-    struct timespec getTime;
-    clock_gettime(CLOCK_MONOTONIC, &getTime);
-    long oldTime = getTime.tv_sec*1000000000L + getTime.tv_nsec; //pasamos todo a nanosegundos
-    long cycles = 0;
-    long newTime = 0;
-    long dTime = 0;
-    long elapsedTime = 0;
-    while(cycles <=MAX_INSTRUCTIONS){ //despues vemos de que condicion de corte hacer.
-        clock_gettime(CLOCK_MONOTONIC, &getTime);
-        newTime = getTime.tv_sec*1000000000L + getTime.tv_nsec;
-        dTime = newTime - oldTime;
-        elapsedTime += dTime;
-        oldTime = newTime;
-        while(elapsedTime>=TIMER_INTERVAL_NS){
-            if(chip8->delayTimer>0) chip8->delayTimer--;
-            if(chip8->soundTimer>0) chip8->soundTimer--;
-            elapsedTime-=TIMER_INTERVAL_NS;
+int runROM(Chip8* chip8, SDL_Renderer* renderer){
+    int running = 1;
+    while(running){
+
+        Uint32 frameStart = SDL_GetTicks();
+        
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = 0;
+            }
         }
-        //si paso 16,67ms bajar timers y restar del acumulador
-        uint16_t opcode = fetchOpcode(chip8->PC, chip8->memory);
-        chip8->PC += INSTRUCTION_SIZE;
-        execute(opcode, chip8); // pense en poner running = execute(opcode) nose si esto sera poco declarativo, la idea es que execute devuelva 1 si se ejecuto correctamente, -1 si no (o si se colgo, adentro del execute se ve como detecto que llegue al fin, esto es temporal, despues lo cambiare.)
-        cycles++;
+
+        for(int i = 0; i<=INSTRUCTIONS_PER_FRAME; i++){
+            uint16_t opcode = fetchOpcode(chip8->PC, chip8->memory);
+            chip8->PC += INSTRUCTION_SIZE;
+            execute(opcode, chip8);
+            //drawScreen(chip8);
+            //printf("PC=%04X I=%04X V0=%02X V1=%02X\n", chip8->PC, chip8->I, chip8->V[0], chip8->V[1]);
+        
+        }
+       
+        
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);   // negro
+        SDL_RenderClear(renderer);
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);  // blanco
+        for (int y = 0; y < 32; y++) {
+            for (int x = 0; x < 64; x++) {
+                if (chip8->display[y][x]) {
+                    SDL_Rect pixel = { x * SCALE, y * SCALE, SCALE, SCALE };
+                    SDL_RenderFillRect(renderer, &pixel);
+                }
+            }
+        }
+
+        SDL_RenderPresent(renderer);
+
+        Uint32 frameTime = SDL_GetTicks() - frameStart;
+        if (frameTime < 16) {
+            SDL_Delay(16 - frameTime);
+        }
+
+        if(chip8->delayTimer>0) chip8->delayTimer--;
+        if(chip8->soundTimer>0) chip8->soundTimer--;
     }
 
-    drawScreen(chip8);
-    printf("PC=%04X I=%04X V0=%02X V1=%02X\n", chip8->PC, chip8->I, chip8->V[0], chip8->V[1]);
+    
+    
     return 0; //despues lo cambio para que pueda devolver -1 en caso de algun error.
 }
 
