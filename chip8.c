@@ -14,6 +14,24 @@
 #define FONT_START 0x50
 #define INSTRUCTIONS_PER_FRAME 11
 
+static const SDL_Scancode chip8KeyMap[16] = {
+    SDL_SCANCODE_X,    // CHIP-8 0
+    SDL_SCANCODE_1,    // CHIP-8 1
+    SDL_SCANCODE_2,    // CHIP-8 2
+    SDL_SCANCODE_3,    // CHIP-8 3
+    SDL_SCANCODE_Q,    // CHIP-8 4
+    SDL_SCANCODE_W,    // CHIP-8 5
+    SDL_SCANCODE_E,    // CHIP-8 6
+    SDL_SCANCODE_A,    // CHIP-8 7
+    SDL_SCANCODE_S,    // CHIP-8 8
+    SDL_SCANCODE_D,    // CHIP-8 9
+    SDL_SCANCODE_Z,    // CHIP-8 A
+    SDL_SCANCODE_C,    // CHIP-8 B
+    SDL_SCANCODE_4,    // CHIP-8 C
+    SDL_SCANCODE_R,    // CHIP-8 D
+    SDL_SCANCODE_F,    // CHIP-8 E
+    SDL_SCANCODE_V     // CHIP-8 F
+};
 
 static const uint8_t FONTSET[80] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -62,6 +80,7 @@ int execute(uint16_t opcode, Chip8* chip8);
 void drawScreen(const Chip8* chip8);
 void stackPush(Chip8 *chip8, uint16_t addr);
 uint16_t stackPop(Chip8 *chip8);
+int findKey(SDL_Scancode sc);
 
 
 int main(int argc, char *argv[]){
@@ -507,6 +526,15 @@ void drawScreen(const Chip8 *chip8){
     }
 }
 
+int findChip8Key(SDL_Scancode sc){
+    for(int i = 0; i<16; i++){
+        if(chip8KeyMap[i] == sc){
+            return i;
+        }
+    }
+    return -1;
+}
+
 int runROM(Chip8* chip8, SDL_Renderer* renderer){
     int running = 1;
     while(running){
@@ -517,6 +545,10 @@ int runROM(Chip8* chip8, SDL_Renderer* renderer){
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
                 running = 0;
+            }
+            else if(event.type == SDL_KEYDOWN || event.type == SDL_KEYUP){
+                int keyPressed = findChip8Key(event.key.keysym.scancode);
+                if (keyPressed >=0) chip8->keyboard[keyPressed] = (event.type == SDL_KEYDOWN);
             }
         }
 
