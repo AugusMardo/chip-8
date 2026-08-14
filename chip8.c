@@ -93,7 +93,7 @@ int main(int argc, char *argv[]){
         printf("Invalid argument.");
         return 1;
     }
-
+    int debug = (argc > 2 && strcmp(argv[2], "-d") == 0);
     Chip8 chip8 = initChip8();
 
     long size = loadRom(argv[1], chip8.memory);
@@ -103,11 +103,13 @@ int main(int argc, char *argv[]){
     }
     printf("The file reading process SUCCEEDED \n");
 
-    dumpMemory(size, chip8.memory);
 
-    for(long i = ROM_START; i< ROM_START + size; i+=INSTRUCTION_SIZE){
-        printf("0x%04lX: ", i);
-        disassembler(fetchOpcode((size_t)i,chip8.memory));
+    if (debug) {
+        dumpMemory(size, chip8.memory);
+        for (long i = ROM_START; i < ROM_START + size; i += INSTRUCTION_SIZE) {
+            printf("0x%04lX: ", i);
+            disassembler(fetchOpcode((size_t)i, chip8.memory));
+        }
     }
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -552,7 +554,7 @@ int runROM(Chip8* chip8, SDL_Renderer* renderer){
             }
         }
 
-        for(int i = 0; i<=INSTRUCTIONS_PER_FRAME; i++){
+        for(int i = 0; i<INSTRUCTIONS_PER_FRAME; i++){
             uint16_t opcode = fetchOpcode(chip8->PC, chip8->memory);
             chip8->PC += INSTRUCTION_SIZE;
             execute(opcode, chip8);
