@@ -1,12 +1,12 @@
 # CHIP-8
 
-Este proyecto es un intérprete de CHIP-8, usando SDL para video e inputs.
+Este proyecto es un intérprete de CHIP-8, usando SDL para video e inputs. Corre Pong y ROMs clásicas de CHIP-8. Pasa los tests 3-corax+ y 4-flags del test suite de Timendus.
 
 ![Pong corriendo en el emulador](docs/pong.png)
 
 ## Sobre este proyecto
 
-Este es el primero de una serie de proyectos que tengo planteados para profundizar en la programación de bajo nivel, que es lo que más me gusta, para encontrar qué rama específica me llama más. Además sirve para ir ganando experiencia y soltura en C y para sumar a mi portfolio mientras busco trabajo en el mundo del desarrollo.
+Este es el primero de una serie de proyectos que tengo planteados para profundizar en la programación de bajo nivel, que es lo que más me gusta, para encontrar qué rama específica me llama más. Además sirve para ir ganando experiencia y soltura en C.
 
 El proyecto en sí es un intérprete de CHIP-8 y el objetivo final era tener una versión lo suficientemente completa como para correr el Pong y algunas ROMs de la época, dejando de lado detalles más minuciosos a propósito, como el sonido o una UX para debuggear. Cosas que excedían la idea original del proyecto.
 
