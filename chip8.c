@@ -73,15 +73,13 @@ typedef struct{
 long loadRom(const char *path, uint8_t* memory);
 void dumpMemory(long ROMsize, const uint8_t* memory);
 uint16_t fetchOpcode(size_t PC, const uint8_t* memory);
-void disassembler(uint16_t instrucion);
-Chip8 initChip8();
-int runROM(Chip8* chip8, SDL_Renderer* renderer);
-int execute(uint16_t opcode, Chip8* chip8);
-void drawScreen(const Chip8* chip8);
+void disassembler(uint16_t instruction);
+Chip8 initChip8(void);
+void runROM(Chip8* chip8, SDL_Renderer* renderer);
+void execute(uint16_t opcode, Chip8* chip8);
 void stackPush(Chip8 *chip8, uint16_t addr);
 uint16_t stackPop(Chip8 *chip8);
-int findKey(SDL_Scancode sc);
-
+int findChip8Key(SDL_Scancode sc);
 
 int main(int argc, char *argv[]){
 
@@ -89,14 +87,25 @@ int main(int argc, char *argv[]){
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
 
-    if(argc<2){
-        printf("Invalid argument.");
+    int debug = 0;
+    const char *romPath = NULL;
+
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-d") == 0) {
+            debug = 1;
+        } else if (argv[i][0] != '-' && romPath == NULL) {
+               romPath = argv[i];
+           }
+    }   
+
+    if (romPath == NULL) {
+        printf("Uso: %s <rom.ch8> [-d]\n", argv[0]);
         return 1;
     }
-    int debug = (argc > 2 && strcmp(argv[2], "-d") == 0);
+
     Chip8 chip8 = initChip8();
 
-    long size = loadRom(argv[1], chip8.memory);
+    long size = loadRom(romPath, chip8.memory);
     if (size <0){
         printf("The file reading process FAILED. \n");
         return 1;
@@ -312,7 +321,7 @@ void disassembler(uint16_t instruction){
 }
 
 
-Chip8 initChip8(){
+Chip8 initChip8(void){
     Chip8 chip8 = {0};
     chip8.PC = 0x200;
     memcpy(chip8.memory + FONT_START, FONTSET, sizeof(FONTSET));
@@ -321,7 +330,7 @@ Chip8 initChip8(){
 }
 
 
-int execute(uint16_t opcode, Chip8* chip8){
+void execute(uint16_t opcode, Chip8* chip8){
     uint8_t  nibbleAlto = (opcode & 0xF000) >> 12;
     uint8_t  X   = (opcode & 0x0F00) >> 8;
     uint8_t  Y   = (opcode & 0x00F0) >> 4;
@@ -341,7 +350,7 @@ int execute(uint16_t opcode, Chip8* chip8){
         break;
 
     case 0x1:
-        chip8->PC = NNN;                      // 1NNN -> JMP NNN
+        chip8->PC = NNN;                     
         break;
 
     case 0x2:
@@ -368,7 +377,7 @@ int execute(uint16_t opcode, Chip8* chip8){
         break;
 
     case 0x6:
-        chip8->V[X] = NN;                     // 6XNN -> LD Vx, NN
+        chip8->V[X] = NN;                    
         break;
 
     case 0x7:
@@ -423,7 +432,7 @@ int execute(uint16_t opcode, Chip8* chip8){
         break;
 
     case 0xA:
-        chip8->I = NNN;                       // ANNN -> LD I, NNN
+        chip8->I = NNN;                       
         break;
 
     case 0xB:
@@ -434,7 +443,7 @@ int execute(uint16_t opcode, Chip8* chip8){
         chip8->V[X] = (rand() % 256) & NN;
         break;
 
-    case 0xD: {                               // DXYN -> DRW Vx, Vy, N
+    case 0xD: {                               
         chip8->V[0xF] = 0;
         uint8_t x0 = chip8->V[X] & 63;        // wrap del origen
         uint8_t y0 = chip8->V[Y] & 31;
@@ -515,18 +524,8 @@ int execute(uint16_t opcode, Chip8* chip8){
         printf("Unknown %04X\n", opcode);
         break;
     }
-
-    return 0;
 }
 
-void drawScreen(const Chip8 *chip8){
-    for (int y = 0; y < 32; y++) {
-        for (int x = 0; x < 64; x++) {
-            printf("%s", chip8->display[y][x] ? "██" : "  ");
-        }
-        printf("\n");
-    }
-}
 
 int findChip8Key(SDL_Scancode sc){
     for(int i = 0; i<16; i++){
@@ -537,7 +536,7 @@ int findChip8Key(SDL_Scancode sc){
     return -1;
 }
 
-int runROM(Chip8* chip8, SDL_Renderer* renderer){
+void runROM(Chip8* chip8, SDL_Renderer* renderer){
     int running = 1;
     while(running){
 
@@ -558,8 +557,6 @@ int runROM(Chip8* chip8, SDL_Renderer* renderer){
             uint16_t opcode = fetchOpcode(chip8->PC, chip8->memory);
             chip8->PC += INSTRUCTION_SIZE;
             execute(opcode, chip8);
-            //drawScreen(chip8);
-            //printf("PC=%04X I=%04X V0=%02X V1=%02X\n", chip8->PC, chip8->I, chip8->V[0], chip8->V[1]);
         
         }
        
@@ -588,9 +585,6 @@ int runROM(Chip8* chip8, SDL_Renderer* renderer){
         if(chip8->soundTimer>0) chip8->soundTimer--;
     }
 
-    
-    
-    return 0; //despues lo cambio para que pueda devolver -1 en caso de algun error.
 }
 
 void stackPush(Chip8 *chip8, uint16_t addr){
