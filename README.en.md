@@ -1,3 +1,5 @@
+**English** · [Español](README.md)
+
 # CHIP-8
 
 This project is a CHIP-8 interpreter, using SDL for video and input. It runs Pong and classic CHIP-8 ROMs. It passes the `3-corax+` and `4-flags` tests from Timendus' test suite.
