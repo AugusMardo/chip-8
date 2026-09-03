@@ -1,3 +1,7 @@
+[English](README.en.md) · **Español**
+
+# CHIP-8
+
 # CHIP-8
 
 Este proyecto es un intérprete de CHIP-8, usando SDL para video e inputs. Corre Pong y ROMs clásicas de CHIP-8. Pasa los tests 3-corax+ y 4-flags del test suite de Timendus.
